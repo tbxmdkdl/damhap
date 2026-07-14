@@ -197,7 +197,7 @@ def seconds_text(seconds: int | None) -> str:
 def render_sprite(filename: str, label: str, role: str) -> None:
     image_path = ASSET_DIR / filename
     if image_path.exists():
-        st.image(str(image_path), use_container_width=True)
+        st.image(str(image_path), width="stretch")
         return
     safe_label = html.escape(label)
     st.markdown(
@@ -317,7 +317,7 @@ def render_floor_feedback() -> None:
     else:
         button_label = f"{floor['number'] + 1}층으로 이동"
 
-    if st.button(button_label, use_container_width=True, key="next_floor"):
+    if st.button(button_label, width="stretch", key="next_floor"):
         st.session_state.show_floor_feedback = False
         if st.session_state.floor_index == len(FLOORS) - 1:
             st.session_state.page = "main_result"
@@ -356,7 +356,7 @@ def render_main_game() -> None:
         if st.button(
             label,
             key=f"choice_{floor['number']}_{st.session_state.scene_index}_{option['key']}",
-            use_container_width=True,
+            width="stretch",
             disabled=disabled,
         ):
             choose_main_option(floor, scene, option)
@@ -414,11 +414,11 @@ def render_main_result() -> None:
 
     left, right = st.columns(2)
     with left:
-        if st.button("마왕에게 도전한다", use_container_width=True, key="start_bonus"):
+        if st.button("마왕에게 도전한다", width="stretch", key="start_bonus"):
             st.session_state.page = "bonus"
             st.rerun()
     with right:
-        if st.button("본편 기록 확정", use_container_width=True, key="finish_main"):
+        if st.button("본편 기록 확정", width="stretch", key="finish_main"):
             st.session_state.page = "final"
             st.rerun()
 
@@ -476,9 +476,9 @@ def render_bonus() -> None:
         f"<p class='feedback-risk'>성공 확률 10% · 성공 시 +{reward}점</p></div>",
         unsafe_allow_html=True,
     )
-    if st.button(challenge["action"], use_container_width=True, key="take_bonus_risk"):
+    if st.button(challenge["action"], width="stretch", key="take_bonus_risk"):
         choose_bonus_challenge()
-    if st.button("여기서 물러나고 기록 확정", use_container_width=True, key="end_bonus"):
+    if st.button("여기서 물러나고 기록 확정", width="stretch", key="end_bonus"):
         st.session_state.page = "final"
         st.rerun()
 
@@ -504,14 +504,14 @@ def render_bonus_outcome() -> None:
     if outcome["success"]:
         left, right = st.columns(2)
         with left:
-            if st.button("더 깊이 내려간다", use_container_width=True, key="continue_bonus"):
+            if st.button("더 깊이 내려간다", width="stretch", key="continue_bonus"):
                 st.session_state.page = "bonus"
                 st.rerun()
         with right:
-            if st.button("번외 기록 확정", use_container_width=True, key="finish_after_success"):
+            if st.button("번외 기록 확정", width="stretch", key="finish_after_success"):
                 st.session_state.page = "final"
                 st.rerun()
-    elif st.button("기록 확정", use_container_width=True, key="finish_after_failure"):
+    elif st.button("기록 확정", width="stretch", key="finish_after_failure"):
         st.session_state.page = "final"
         st.rerun()
 
@@ -557,7 +557,7 @@ def render_final() -> None:
     else:
         if st.session_state.submission_status is False:
             st.error(st.session_state.submission_message)
-        if st.button("Google Sheets에 기록하기", use_container_width=True, key="submit_result"):
+        if st.button("Google Sheets에 기록하기", width="stretch", key="submit_result"):
             try:
                 success, message = append_result(st.secrets, payload)
             except Exception:
@@ -566,7 +566,7 @@ def render_final() -> None:
             st.session_state.submission_message = message
             st.rerun()
 
-    if st.button("새 도전자 시작", use_container_width=True, key="new_game"):
+    if st.button("새 도전자 시작", width="stretch", key="new_game"):
         reset_game()
         st.rerun()
 
@@ -583,7 +583,7 @@ def render_landing() -> None:
     )
     name = st.text_input("이름", max_chars=30, key="player_name", placeholder="이름을 입력하세요")
     department = st.selectbox("부서", DEPARTMENTS, key="player_department")
-    if st.button("탑에 입장", use_container_width=True, key="start_game"):
+    if st.button("탑에 입장", width="stretch", key="start_game"):
         clean_name = name.strip()
         if not clean_name:
             st.warning("이름을 입력해 주세요.")
