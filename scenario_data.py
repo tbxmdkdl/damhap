@@ -15,9 +15,9 @@ def choice(key, text, score, feedback, kind="normal", **extra):
 FLOORS = [
     {
         "number": 1,
-        "title": "시장 전망의 회랑",
+        "title": "경쟁사 비딩 담합의 회랑",
         "team": "전략기획",
-        "enemy": "가격 신호술사",
+        "enemy": "경쟁사 김대리",
         "asset": "enemy_floor_1.png",
         "opening": "입찰 직전, 경쟁사의 가격 신호술사가 시장 전망 회의의 틈을 노리고 있습니다.",
         "closing": "전략 자료를 만든다는 명분은 가격·물량·거래조건의 교환을 정당화하지 않습니다.",

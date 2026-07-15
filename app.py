@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import html
 import random
 import time
@@ -83,6 +84,59 @@ def apply_style() -> None:
         }
         .enemy-sprite { color: var(--red); }
         .hero-sprite { color: var(--green); }
+        .battle-arena {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            margin: 0.7rem 0 1.15rem;
+            border: 4px solid var(--paper);
+            box-shadow: 7px 7px 0 #000;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            image-rendering: pixelated;
+        }
+        .battle-arena::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.58);
+        }
+        .battle-sprite {
+            position: absolute;
+            z-index: 2;
+            display: block;
+            object-fit: contain;
+            image-rendering: pixelated;
+            filter: drop-shadow(7px 9px 0 rgba(0, 0, 0, 0.45));
+        }
+        .battle-enemy {
+            right: 12%;
+            bottom: 43%;
+            width: 30%;
+            max-height: 72%;
+        }
+        .battle-hero {
+            left: -2%;
+            bottom: 2%;
+            width: 48%;
+        }
+        .battle-status {
+            position: absolute;
+            z-index: 3;
+            width: min(38%, 330px);
+            padding: 0.55rem 0.65rem 0.62rem;
+            border: 3px solid var(--paper);
+            background: rgba(11, 14, 20, 0.9);
+            box-shadow: 4px 4px 0 #000;
+        }
+        .battle-status-enemy { top: 4%; left: 3%; }
+        .battle-status-player { right: 3%; bottom: 4%; }
+        .battle-status .battle-name { font-size: clamp(0.72rem, 1.7vw, 1.05rem); }
+        .battle-status .battle-role { font-size: clamp(0.58rem, 1.25vw, 0.8rem); }
+        .battle-status .hp-track { height: 11px; }
         .hud {
             display: flex;
             flex-wrap: wrap;
@@ -127,6 +181,11 @@ def apply_style() -> None:
             .block-container { padding: 1rem 0.85rem 2rem; }
             .tower-frame { min-height: 180px; }
             .sprite-placeholder { min-height: 105px; }
+            .battle-arena { border-width: 3px; box-shadow: 5px 5px 0 #000; }
+            .battle-enemy { right: 10%; bottom: 40%; width: 32%; }
+            .battle-hero { left: -2%; bottom: -6%; width: 44%; }
+            .battle-status { padding: 0.3rem 0.38rem 0.36rem; border-width: 2px; }
+            .battle-status .hp-track { height: 8px; margin-top: 0.2rem; }
         }
         </style>
         """,
@@ -206,6 +265,12 @@ def render_sprite(filename: str, label: str, role: str) -> None:
     )
 
 
+@st.cache_data(show_spinner=False)
+def image_data_uri(path_string: str) -> str:
+    encoded = base64.b64encode(Path(path_string).read_bytes()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
+
+
 def render_tower() -> None:
     image_path = ASSET_DIR / "tower_intro.png"
     if image_path.exists():
@@ -234,6 +299,40 @@ def render_hud(floor_number: int, scene_number: int) -> None:
 
 
 def render_battle(floor: dict) -> None:
+    background_path = ASSET_DIR / f"battle_bg_floor_{floor['number']}.png"
+    enemy_path = ASSET_DIR / floor["asset"]
+    hero_filename = "hero_male_back.png" if floor["number"] == 1 else "hero.png"
+    hero_path = ASSET_DIR / hero_filename
+
+    if background_path.exists() and enemy_path.exists():
+        background_uri = image_data_uri(str(background_path))
+        enemy_uri = image_data_uri(str(enemy_path))
+        hero_markup = ""
+        if hero_path.exists():
+            hero_uri = image_data_uri(str(hero_path))
+            hero_markup = f'<img class="battle-sprite battle-hero" src="{hero_uri}" alt="플레이어 캐릭터">'
+
+        enemy_name = html.escape(floor["enemy"])
+        team_name = html.escape(floor["team"])
+        arena_markup = (
+            f'<div class="battle-arena" style="background-image: url(\'{background_uri}\');">'
+            '<div class="battle-status battle-status-enemy">'
+            f'<div class="battle-name">{enemy_name}</div>'
+            f'<div class="battle-role">{team_name} 구역</div>'
+            '<div class="hp-track enemy-hp"><div class="hp-fill"></div></div>'
+            '</div>'
+            f'<img class="battle-sprite battle-enemy" src="{enemy_uri}" alt="{enemy_name}">'
+            f'{hero_markup}'
+            '<div class="battle-status battle-status-player">'
+            '<div class="battle-name">플레이어</div>'
+            '<div class="battle-role">전략의 수호자</div>'
+            '<div class="hp-track"><div class="hp-fill"></div></div>'
+            '</div>'
+            '</div>'
+        )
+        st.markdown(arena_markup, unsafe_allow_html=True)
+        return
+
     left, right = st.columns(2, gap="large")
     with left:
         st.markdown("<div class='battle-name'>플레이어</div><div class='battle-role'>전략의 수호자</div>", unsafe_allow_html=True)

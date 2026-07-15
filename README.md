@@ -47,7 +47,12 @@ streamlit run app.py
 ```text
 assets/
   tower_intro.png
-  hero.png
+  battle_bg_floor_1.png
+  battle_bg_floor_2.png
+  battle_bg_floor_3.png
+  battle_bg_floor_4.png
+  battle_bg_floor_5.png
+  hero_male_back.png
   enemy_floor_1.png
   enemy_floor_2.png
   enemy_floor_3.png
@@ -60,7 +65,8 @@ assets/
 | 파일 | 권장 비율 | 권장 해상도 | 배경 |
 | --- | --- | --- | --- |
 | `tower_intro.png` | 16:9 | 1280x720 | 불투명 |
-| `hero.png` | 1:1 | 512x512 | 투명 PNG |
+| `battle_bg_floor_*.png` | 16:9 | 1280x720 이상 | 불투명 PNG |
+| `hero_male_back.png` | 1:1 | 512x512 이상 | 투명 PNG |
 | `enemy_floor_*.png` | 1:1 | 512x512 | 투명 PNG |
 
 생성 이미지 파일은 업로드 전 실제 PNG인지 확인하고, 파일명과 확장자를 위 구조에 맞춰 넣으면 됩니다.
