@@ -17,6 +17,7 @@ APP_DIR = Path(__file__).parent
 ASSET_DIR = APP_DIR / "assets"
 TOTAL_SCENES = sum(len(floor["scenes"]) for floor in FLOORS)
 DEPARTMENTS = ["전략기획", "전략투자", "브랜드성장", "기타"]
+BONUS_SUCCESS_RATES = (50, 30, 20, 10, 5)
 
 
 st.set_page_config(
@@ -113,15 +114,15 @@ def apply_style() -> None:
             filter: drop-shadow(7px 9px 0 rgba(0, 0, 0, 0.45));
         }
         .battle-enemy {
-            right: 12%;
-            bottom: 43%;
+            right: 16.25%;
+            bottom: 44%;
             width: 30%;
             max-height: 72%;
         }
         .battle-hero {
-            left: -2%;
-            bottom: 2%;
-            width: 48%;
+            left: 10%;
+            bottom: 9.5%;
+            width: 41%;
         }
         .battle-status {
             position: absolute;
@@ -159,6 +160,12 @@ def apply_style() -> None:
         .enemy-hp .hp-fill { background: var(--red); width: 76%; }
         .dialogue { color: var(--paper); line-height: 1.75; font-size: 1.04rem; }
         .danger-note { color: var(--yellow); font-size: 0.84rem; margin: 0.35rem 0 0.7rem; }
+        .followup-step {
+            color: var(--cyan);
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-bottom: 0.35rem;
+        }
         div.stButton > button {
             border-radius: 0 !important;
             border: 3px solid var(--paper) !important;
@@ -173,24 +180,212 @@ def apply_style() -> None:
         div.stButton > button:hover:enabled { border-color: var(--yellow) !important; color: var(--yellow) !important; }
         div.stButton > button:disabled { opacity: 0.42; }
         div[data-testid="stMetric"] { border: 2px solid var(--paper); background: var(--panel); padding: 0.55rem; }
-        div[data-testid="stMetricValue"] { color: var(--yellow); }
+        div[data-testid="stMetricValue"] {
+            color: var(--yellow);
+            line-height: 1.2 !important;
+            min-height: 1.2em;
+        }
+        div[data-testid="stMetricValue"] p { line-height: 1.2 !important; }
         .feedback-good { color: var(--green); font-weight: 700; }
         .feedback-risk { color: var(--red); font-weight: 700; }
         .small-muted { color: #c5cbd4; font-size: 0.88rem; }
+        div.st-key-floor_feedback_parchment {
+            position: relative;
+            isolation: isolate;
+            margin: 1rem 0 1.6rem;
+            padding: 2.3rem 2.5rem 1.7rem;
+            border: 4px solid #5d381c;
+            border-radius: 2px;
+            background-color: #d8bd79;
+            background-image:
+                radial-gradient(circle at 15% 18%, rgba(255, 244, 188, 0.5) 0 8%, transparent 22%),
+                radial-gradient(circle at 82% 72%, rgba(111, 67, 27, 0.16) 0 7%, transparent 24%),
+                repeating-linear-gradient(0deg, rgba(92, 55, 24, 0.04) 0 1px, transparent 1px 5px);
+            box-shadow: inset 0 0 40px rgba(80, 45, 18, 0.34), 8px 8px 0 #000;
+            color: #352313;
+        }
+        div.st-key-floor_feedback_parchment::before,
+        div.st-key-floor_feedback_parchment::after {
+            content: "";
+            position: absolute;
+            z-index: -1;
+            left: 1.3%;
+            right: 1.3%;
+            height: 15px;
+            border: 2px solid #4b2b16;
+            background: #966632;
+            box-shadow: inset 0 3px 0 rgba(255, 229, 155, 0.28), 3px 3px 0 rgba(0, 0, 0, 0.4);
+        }
+        div.st-key-floor_feedback_parchment::before { top: -11px; }
+        div.st-key-floor_feedback_parchment::after { bottom: -11px; }
+        .parchment-title,
+        .parchment-closing,
+        .parchment-result-title,
+        .parchment-feedback,
+        .parchment-best {
+            font-family: "Batang", "Nanum Myeongjo", "Noto Serif KR", serif !important;
+            color: #352313 !important;
+        }
+        .parchment-title {
+            margin: 0;
+            padding-bottom: 0;
+            border-bottom: 0;
+            font-size: 2rem;
+            font-weight: 800;
+            text-align: center;
+        }
+        .parchment-rule {
+            width: 72%;
+            height: 3px;
+            margin: 0.7rem auto 1rem;
+            background: #65401f;
+            box-shadow: 0 3px 0 rgba(255, 238, 177, 0.35);
+        }
+        .parchment-closing {
+            margin: 0 0 1.1rem;
+            font-size: 1rem;
+            line-height: 1.75;
+            text-align: center;
+        }
+        .parchment-result {
+            padding: 1rem 0.25rem 0.9rem;
+            border-top: 1px solid rgba(75, 43, 22, 0.48);
+        }
+        .parchment-result-title { font-size: 1rem; font-weight: 800; }
+        .parchment-result-title.good { color: #315b35 !important; }
+        .parchment-result-title.risk { color: #8b2722 !important; }
+        .parchment-feedback { margin: 0.55rem 0; line-height: 1.68; }
+        .parchment-best { margin: 0; color: #624524 !important; font-size: 0.88rem; line-height: 1.6; }
+        .parchment-score { margin: 0.2rem 0 0.55rem; color: #785420 !important; font-size: 0.82rem; font-weight: 700; }
+        div.st-key-floor_feedback_parchment div[data-testid="stMetric"] {
+            border: 1px solid rgba(75, 43, 22, 0.52);
+            background: rgba(255, 246, 202, 0.24);
+            box-shadow: none;
+        }
+        div.st-key-floor_feedback_parchment div[data-testid="stMetricLabel"],
+        div.st-key-floor_feedback_parchment div[data-testid="stMetricLabel"] * {
+            color: #090705 !important;
+            opacity: 1 !important;
+            font-family: "Batang", "Nanum Myeongjo", "Noto Serif KR", serif !important;
+        }
+        div.st-key-floor_feedback_parchment div[data-testid="stMetricValue"],
+        div.st-key-floor_feedback_parchment div[data-testid="stMetricValue"] * {
+            color: #050403 !important;
+            opacity: 1 !important;
+            font-family: "Batang", "Nanum Myeongjo", "Noto Serif KR", serif !important;
+            font-weight: 900 !important;
+            text-shadow: none !important;
+        }
+        div.st-key-floor_feedback_parchment div.stButton > button {
+            border-color: #3d2413 !important;
+            background: #533019 !important;
+            color: #f5df9f !important;
+            box-shadow: 4px 4px 0 rgba(48, 26, 12, 0.65) !important;
+            text-align: center !important;
+            font-family: "Batang", "Nanum Myeongjo", "Noto Serif KR", serif !important;
+        }
+        div.st-key-floor_feedback_parchment div.stButton > button:hover:enabled {
+            border-color: #8a5125 !important;
+            background: #6c3f1e !important;
+            color: #fff0bd !important;
+        }
+        .ending-scene {
+            min-height: 500px;
+            display: grid;
+            grid-template-columns: minmax(280px, 42%) 1fr;
+            align-items: center;
+            gap: 1rem;
+            overflow: hidden;
+            border: 4px solid #c9a84d;
+            box-shadow: 8px 8px 0 #000;
+            background: repeating-linear-gradient(0deg, #171728 0 5px, #1e1b36 5px 10px);
+        }
+        .ending-hero {
+            width: 100%;
+            height: 490px;
+            object-fit: contain;
+            object-position: center bottom;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 0 18px rgba(255, 218, 84, 0.32));
+        }
+        .ending-scene.denied {
+            border-color: #72568f;
+            background: repeating-linear-gradient(0deg, #15131e 0 5px, #21182d 5px 10px);
+        }
+        .ending-hero.denied {
+            filter: saturate(0.76) brightness(0.84) drop-shadow(0 0 18px rgba(132, 76, 172, 0.42));
+        }
+        .ending-copy { padding: 2rem 2.2rem 2rem 0.5rem; }
+        .ending-kicker { color: #7fd7f2; font-size: 0.82rem; font-weight: 800; }
+        .ending-title {
+            margin: 0.45rem 0 1rem;
+            color: #ffd85b;
+            font-family: "Batang", "Nanum Myeongjo", "Noto Serif KR", serif !important;
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1.35;
+        }
+        .ending-title.denied { color: #c9a3dd; }
+        .ending-message { color: var(--paper); line-height: 1.75; }
         @media (max-width: 680px) {
             .block-container { padding: 1rem 0.85rem 2rem; }
             .tower-frame { min-height: 180px; }
             .sprite-placeholder { min-height: 105px; }
             .battle-arena { border-width: 3px; box-shadow: 5px 5px 0 #000; }
-            .battle-enemy { right: 10%; bottom: 40%; width: 32%; }
-            .battle-hero { left: -2%; bottom: -6%; width: 44%; }
+            .battle-enemy { right: 15.25%; bottom: 43.75%; width: 32%; }
+            .battle-hero { left: 10.5%; bottom: 9.75%; width: 40%; }
             .battle-status { padding: 0.3rem 0.38rem 0.36rem; border-width: 2px; }
             .battle-status .hp-track { height: 8px; margin-top: 0.2rem; }
+            div.st-key-floor_feedback_parchment { padding: 1.7rem 1rem 1.25rem; }
+            .parchment-title { font-size: 1.55rem; }
+            .parchment-closing { text-align: left; }
+            .ending-scene { min-height: 0; grid-template-columns: 1fr; }
+            .ending-hero { height: 340px; }
+            .ending-copy { padding: 0 1.2rem 1.5rem; text-align: center; }
+            .ending-title { font-size: 1.55rem; }
         }
         </style>
         """,
         unsafe_allow_html=True,
     )
+
+    parchment_path = ASSET_DIR / "parchment_scroll.png"
+    if parchment_path.exists():
+        parchment_data = base64.b64encode(parchment_path.read_bytes()).decode("ascii")
+        st.markdown(
+            f"""
+            <style>
+            div.st-key-floor_feedback_parchment {{
+                box-sizing: border-box;
+                width: 100%;
+                max-width: 900px;
+                margin: 1rem auto 2rem;
+                padding: 0.4rem 1rem 0.2rem;
+                border-style: solid;
+                border-width: 118px 78px 110px;
+                border-image-source: url("data:image/png;base64,{parchment_data}");
+                border-image-slice: 180 150 180 150 fill;
+                border-image-width: 118px 78px 110px;
+                border-image-repeat: stretch;
+                border-radius: 0;
+                background: none;
+                box-shadow: none;
+                filter: drop-shadow(8px 9px 0 rgba(0, 0, 0, 0.72));
+            }}
+            div.st-key-floor_feedback_parchment::before,
+            div.st-key-floor_feedback_parchment::after {{ display: none; }}
+            @media (max-width: 680px) {{
+                div.st-key-floor_feedback_parchment {{
+                    padding: 0.2rem 0.55rem 0;
+                    border-width: 76px 34px 70px;
+                    border-image-width: 76px 34px 70px;
+                    filter: drop-shadow(5px 6px 0 rgba(0, 0, 0, 0.68));
+                }}
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 def init_state() -> None:
@@ -205,6 +400,7 @@ def init_state() -> None:
         "main_seconds": None,
         "risk_used": False,
         "risk_success": False,
+        "pending_followup": None,
         "show_floor_feedback": False,
         "bonus_score": 0,
         "bonus_streak": 0,
@@ -230,6 +426,7 @@ def reset_game() -> None:
         "main_seconds",
         "risk_used",
         "risk_success",
+        "pending_followup",
         "show_floor_feedback",
         "bonus_score",
         "bonus_streak",
@@ -300,13 +497,18 @@ def render_hud(floor_number: int, scene_number: int) -> None:
 
 def render_battle(floor: dict) -> None:
     background_path = ASSET_DIR / f"battle_bg_floor_{floor['number']}.png"
+    if floor["number"] <= 4 and not background_path.exists():
+        background_path = ASSET_DIR / "battle_bg_floor_1.png"
     enemy_path = ASSET_DIR / floor["asset"]
-    hero_filename = "hero_male_back.png" if floor["number"] == 1 else "hero.png"
-    hero_path = ASSET_DIR / hero_filename
+    hero_path = ASSET_DIR / "hero_male_back.png"
 
-    if background_path.exists() and enemy_path.exists():
+    if background_path.exists():
         background_uri = image_data_uri(str(background_path))
-        enemy_uri = image_data_uri(str(enemy_path))
+        enemy_markup = ""
+        if enemy_path.exists():
+            enemy_uri = image_data_uri(str(enemy_path))
+            enemy_name = html.escape(floor["enemy"])
+            enemy_markup = f'<img class="battle-sprite battle-enemy" src="{enemy_uri}" alt="{enemy_name}">'
         hero_markup = ""
         if hero_path.exists():
             hero_uri = image_data_uri(str(hero_path))
@@ -321,7 +523,7 @@ def render_battle(floor: dict) -> None:
             f'<div class="battle-role">{team_name} 구역</div>'
             '<div class="hp-track enemy-hp"><div class="hp-fill"></div></div>'
             '</div>'
-            f'<img class="battle-sprite battle-enemy" src="{enemy_uri}" alt="{enemy_name}">'
+            f'{enemy_markup}'
             f'{hero_markup}'
             '<div class="battle-status battle-status-player">'
             '<div class="battle-name">플레이어</div>'
@@ -337,7 +539,7 @@ def render_battle(floor: dict) -> None:
     with left:
         st.markdown("<div class='battle-name'>플레이어</div><div class='battle-role'>전략의 수호자</div>", unsafe_allow_html=True)
         st.markdown("<div class='hp-track'><div class='hp-fill'></div></div>", unsafe_allow_html=True)
-        render_sprite("hero.png", "전략의 수호자", "hero")
+        render_sprite("hero_male_back.png", "전략의 수호자", "hero")
     with right:
         st.markdown(
             f"<div class='battle-name'>{html.escape(floor['enemy'])}</div><div class='battle-role'>{html.escape(floor['team'])} 구역</div>",
@@ -373,6 +575,12 @@ def choose_main_option(floor: dict, scene: dict, option: dict) -> None:
             "choice_key": option["key"],
             "choice_text": option["text"],
             "kind": option["kind"],
+            "initial_score": option["score"],
+            "base_score": awarded_score,
+            "followup_key": None,
+            "followup_text": None,
+            "followup_score": None,
+            "followup_feedback": None,
             "score": awarded_score,
             "risk_success": risk_success,
             "feedback": feedback,
@@ -380,6 +588,23 @@ def choose_main_option(floor: dict, scene: dict, option: dict) -> None:
         }
     )
     st.session_state.main_score += awarded_score
+    st.session_state.pending_followup = len(st.session_state.selections) - 1
+    st.rerun()
+
+
+def choose_followup(floor: dict, scene: dict, option: dict) -> None:
+    result_index = st.session_state.pending_followup
+    if result_index is None:
+        return
+
+    result = st.session_state.selections[result_index]
+    result["followup_key"] = option["key"]
+    result["followup_text"] = option["text"]
+    result["followup_score"] = option["score"]
+    result["followup_feedback"] = option["feedback"]
+    result["score"] += option["score"]
+    st.session_state.main_score += option["score"]
+    st.session_state.pending_followup = None
 
     if st.session_state.scene_index == len(floor["scenes"]) - 1:
         if st.session_state.floor_index == len(FLOORS) - 1:
@@ -395,35 +620,47 @@ def render_floor_feedback() -> None:
     results = [result for result in st.session_state.selections if result["floor"] == floor["number"]]
     floor_score = sum(result["score"] for result in results)
 
-    st.title(f"{floor['number']}층 결산")
-    st.markdown(f"<div class='pixel-panel'><p class='dialogue'>{html.escape(floor['closing'])}</p></div>", unsafe_allow_html=True)
-    metrics = st.columns(3)
-    metrics[0].metric("이번 층 점수", f"{floor_score}점")
-    metrics[1].metric("누적 점수", f"{st.session_state.main_score}점")
-    metrics[2].metric("선택 장면", f"{len(results)}개")
-
-    for index, result in enumerate(results, start=1):
-        risk_class = "feedback-risk" if result["kind"] == "risk" and not result["risk_success"] else "feedback-good"
-        st.markdown(
-            f"<div class='pixel-panel'><div class='{risk_class}'>{index}. {html.escape(result['scene'])} · {result['score']}점</div>"
-            f"<p class='dialogue'>{html.escape(result['feedback'])}</p>"
-            f"<p class='small-muted'>가장 안전한 대응: {html.escape(result['best'])}</p></div>",
-            unsafe_allow_html=True,
-        )
-
     if st.session_state.floor_index == len(FLOORS) - 1:
         button_label = "본편 결과 확인"
     else:
         button_label = f"{floor['number'] + 1}층으로 이동"
 
-    if st.button(button_label, width="stretch", key="next_floor"):
-        st.session_state.show_floor_feedback = False
-        if st.session_state.floor_index == len(FLOORS) - 1:
-            st.session_state.page = "main_result"
-        else:
-            st.session_state.floor_index += 1
-            st.session_state.scene_index = 0
-        st.rerun()
+    with st.container(key="floor_feedback_parchment"):
+        st.markdown(
+            f"<h1 class='parchment-title'>{floor['number']}층 결산</h1>"
+            "<div class='parchment-rule'></div>"
+            f"<p class='parchment-closing'>{html.escape(floor['closing'])}</p>",
+            unsafe_allow_html=True,
+        )
+        metrics = st.columns(3)
+        metrics[0].metric("이번 층 점수", f"{floor_score}점")
+        metrics[1].metric("누적 점수", f"{st.session_state.main_score}점")
+        metrics[2].metric("선택 장면", f"{len(results)}개")
+
+        for index, result in enumerate(results, start=1):
+            risk_class = "risk" if result["kind"] == "risk" and not result["risk_success"] else "good"
+            base_label = "위험 보상" if result["kind"] == "risk" and result["risk_success"] else "1차 판단"
+            st.markdown(
+                f"<div class='parchment-result'>"
+                f"<div class='parchment-result-title {risk_class}'>{index}. {html.escape(result['scene'])} · {result['score']}점</div>"
+                f"<p class='parchment-score'>{base_label} {result['base_score']}점 + 후속 조치 {result['followup_score']}점</p>"
+                f"<p class='parchment-feedback'>{html.escape(result['feedback'])}</p>"
+                f"<p class='parchment-feedback'>후속 조치: {html.escape(result['followup_feedback'])}</p>"
+                f"<p class='parchment-best'>가장 안전한 대응: {html.escape(result['best'])}</p>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+
+        _, action_column = st.columns([3, 2])
+        with action_column:
+            if st.button(button_label, width="stretch", key="next_floor"):
+                st.session_state.show_floor_feedback = False
+                if st.session_state.floor_index == len(FLOORS) - 1:
+                    st.session_state.page = "main_result"
+                else:
+                    st.session_state.floor_index += 1
+                    st.session_state.scene_index = 0
+                st.rerun()
 
 
 def render_main_game() -> None:
@@ -443,7 +680,31 @@ def render_main_game() -> None:
         f"<p class='dialogue'>{html.escape(scene['situation'])}</p></div>",
         unsafe_allow_html=True,
     )
-    st.markdown("<p class='danger-note'>선택지의 일반 점수는 공개되지 않습니다. 본편의 위험 선택은 단 한 번만 사용할 수 있습니다.</p>", unsafe_allow_html=True)
+    pending_index = st.session_state.pending_followup
+    if pending_index is not None:
+        result = st.session_state.selections[pending_index]
+        st.markdown(
+            "<div class='pixel-panel'>"
+            "<div class='followup-step'>2차 선택 · 후속 조치</div>"
+            "<h3>추가적으로 진행할 사항이 있습니까?</h3>"
+            f"<p class='dialogue'>{html.escape(result['feedback'])}</p>"
+            "<p class='dialogue'>현장 판단 이후 회사 차원에서 이어갈 행동을 선택하십시오.</p>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        for option in scene["followups"]:
+            if st.button(
+                option["text"],
+                key=f"followup_{floor['number']}_{st.session_state.scene_index}_{option['key']}",
+                width="stretch",
+            ):
+                choose_followup(floor, scene, option)
+        return
+
+    st.markdown(
+        "<p class='danger-note'>1차 판단과 후속 조치의 일반 점수는 공개되지 않습니다. 본편의 위험 선택은 단 한 번만 사용할 수 있습니다.</p>",
+        unsafe_allow_html=True,
+    )
 
     for option in scene["choices"]:
         is_risk = option["kind"] == "risk"
@@ -464,9 +725,11 @@ def render_main_game() -> None:
 def main_title_and_feedback() -> tuple[str, list[str]]:
     score = st.session_state.main_score
     ordinary = [result for result in st.session_state.selections if result["kind"] == "normal"]
-    score_100 = sum(result["score"] == 100 for result in ordinary)
-    score_60 = sum(result["score"] == 60 for result in ordinary)
-    score_40 = sum(result["score"] == 40 for result in ordinary)
+    perfect_responses = sum(
+        result["initial_score"] == 80 and result["followup_score"] == 20 for result in ordinary
+    )
+    incomplete_followups = sum((result["followup_score"] or 0) < 20 for result in ordinary)
+    weak_initial_judgments = sum(result["initial_score"] <= 40 for result in ordinary)
     notes: list[str] = []
 
     if score >= 1350:
@@ -482,15 +745,15 @@ def main_title_and_feedback() -> tuple[str, list[str]]:
         title = "회색지대 탐험가"
         notes.append("성과 압박이나 관계 관리의 언어가 나와도 경쟁 민감정보의 교환과 활용은 선을 그어야 합니다.")
 
-    if score_60:
-        notes.append("거절만 하고 기록·보고를 생략한 선택이 있었습니다. 사후 대응까지 완료해야 조직이 위험을 관리할 수 있습니다.")
-    if score_40:
-        notes.append("상대의 말을 듣거나 우회 경로를 찾는 선택이 있었습니다. 숫자를 직접 말하지 않아도 민감정보의 취득·신호 교환은 위험합니다.")
+    if incomplete_followups:
+        notes.append(f"{incomplete_followups}개 장면에서 공식 기록·보고까지 이어지지 않았습니다. 현장에서 거절한 뒤에도 증거 보존과 보고를 완료해야 조직이 재발 위험을 관리할 수 있습니다.")
+    if weak_initial_judgments:
+        notes.append(f"{weak_initial_judgments}개 장면에서 위험한 대화나 자료에 불필요하게 노출됐습니다. 후속 보고가 있더라도 최초 대응에서 즉시 중단·이탈하는 판단이 먼저 필요합니다.")
     if st.session_state.risk_used and st.session_state.risk_success:
-        notes.append("위험 선택은 운 좋게 통과했지만, 이 기록은 보너스일 뿐 실제 업무에서 허용되는 판단은 아닙니다.")
+        notes.append("위험 선택은 운 좋게 통과해 점수를 얻었지만, 한 번이라도 위험 선택을 사용했으므로 공정의 검의 선택은 받을 수 없습니다.")
     if st.session_state.risk_used and not st.session_state.risk_success:
-        notes.append("위험 선택이 실패했습니다. 가장 빠른 길처럼 보여도 조사·제재·신뢰 손상으로 이어질 수 있습니다.")
-    if score_100 >= 10:
+        notes.append("위험 선택이 실패했습니다. 결과와 관계없이 한 번이라도 위험 선택을 사용하면 공정의 검의 선택은 받을 수 없습니다.")
+    if perfect_responses >= 10:
         notes.append("특히 독립적 의사결정의 원칙과 대체 가능한 업무 경로를 함께 제시한 점이 강점입니다.")
     return title, notes
 
@@ -498,11 +761,46 @@ def main_title_and_feedback() -> tuple[str, list[str]]:
 def render_main_result() -> None:
     title, notes = main_title_and_feedback()
     st.title("본편 돌파 결과")
-    st.markdown(
-        f"<div class='pixel-panel'><h2>{html.escape(title)}</h2>"
-        "<p class='dialogue'>담합의 탑 본편을 돌파했습니다. 점수만큼 중요한 것은, 실제 상황에서 위험한 대화의 경계를 인식하고 중단·기록·보고까지 실행하는 것입니다.</p></div>",
-        unsafe_allow_html=True,
-    )
+    sword_denied = st.session_state.risk_used
+    ending_path = ASSET_DIR / ("hero_male_sword_rejected.png" if sword_denied else "hero_male_front_sword.png")
+    if ending_path.exists():
+        ending_uri = image_data_uri(str(ending_path))
+        if sword_denied:
+            scene_class = "ending-scene denied"
+            hero_class = "ending-hero denied"
+            hero_alt = "공정의 검을 뽑지 못한 플레이어"
+            kicker = "TOWER CLEARED · SWORD REJECTED"
+            ending_title = "게임은 클리어했으나<br>공정의 검의 선택은 받지 못했습니다"
+            ending_message = (
+                f"{title} 칭호와 획득 점수는 기록됩니다. 하지만 확률성 위험 선택은 성공 여부와 관계없이 "
+                "공정의 검 획득 조건을 잃게 합니다."
+            )
+        else:
+            scene_class = "ending-scene"
+            hero_class = "ending-hero"
+            hero_alt = "공정의 검을 든 플레이어"
+            kicker = "TOWER CLEARED"
+            ending_title = "마왕을 무찌르고<br>공정의 검을 획득했습니다"
+            ending_message = (
+                f"{title} 칭호를 획득했습니다. 실제 업무에서도 위험한 대화는 즉시 중단하고, "
+                "기록과 보고까지 이어가세요."
+            )
+        st.markdown(
+            f"<div class='{scene_class}'>"
+            f"<img class='{hero_class}' src='{ending_uri}' alt='{hero_alt}'>"
+            "<div class='ending-copy'>"
+            f"<div class='ending-kicker'>{kicker}</div>"
+            f"<div class='ending-title{' denied' if sword_denied else ''}'>{ending_title}</div>"
+            f"<p class='ending-message'>{html.escape(ending_message)}</p>"
+            "</div></div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f"<div class='pixel-panel'><h2>{html.escape(title)}</h2>"
+            "<p class='dialogue'>담합의 탑 본편을 돌파했습니다. 점수만큼 중요한 것은, 실제 상황에서 위험한 대화의 경계를 인식하고 중단·기록·보고까지 실행하는 것입니다.</p></div>",
+            unsafe_allow_html=True,
+        )
     metrics = st.columns(3)
     metrics[0].metric("본편 점수", f"{st.session_state.main_score}점")
     metrics[1].metric("본편 시간", seconds_text(st.session_state.main_seconds))
@@ -530,9 +828,14 @@ def current_bonus_challenge() -> tuple[dict, int, int]:
     return challenge, round_number, reward
 
 
+def bonus_success_rate(attempts: int) -> int:
+    return BONUS_SUCCESS_RATES[min(attempts, len(BONUS_SUCCESS_RATES) - 1)]
+
+
 def choose_bonus_challenge() -> None:
     challenge, round_number, reward = current_bonus_challenge()
-    success = random.randrange(100) < 10
+    success_rate = bonus_success_rate(st.session_state.bonus_attempts)
+    success = random.randrange(100) < success_rate
     st.session_state.bonus_attempts += 1
     if success:
         st.session_state.bonus_streak += 1
@@ -556,11 +859,13 @@ def choose_bonus_challenge() -> None:
 
 def render_bonus() -> None:
     challenge, round_number, reward = current_bonus_challenge()
+    success_rate = bonus_success_rate(st.session_state.bonus_attempts)
     st.title("번외 · 마왕에게 도전")
     st.markdown(
         "<div class='pixel-panel'><p class='dialogue'>"
         "여기는 점수 경쟁을 위한 번외 구역입니다. 실제 업무에서 절대 선택하면 안 되는 길만 고릅니다. "
-        "성공 확률은 매번 10%이며, 실패하면 그 선택의 최악의 결과를 확인하고 종료합니다."
+        "성공 확률은 첫 도전 50%, 두 번째 30%, 세 번째 20%, 네 번째 10%, 다섯 번째 이후 5%입니다. "
+        "실패하면 그 선택의 최악의 결과를 확인하고 종료합니다."
         "</p></div>",
         unsafe_allow_html=True,
     )
@@ -572,7 +877,7 @@ def render_bonus() -> None:
     st.markdown(
         f"<div class='pixel-panel'><h3>{html.escape(challenge['title'])}</h3>"
         f"<p class='dialogue'>{html.escape(challenge['situation'])}</p>"
-        f"<p class='feedback-risk'>성공 확률 10% · 성공 시 +{reward}점</p></div>",
+        f"<p class='feedback-risk'>성공 확률 {success_rate}% · 성공 시 +{reward}점</p></div>",
         unsafe_allow_html=True,
     )
     if st.button(challenge["action"], width="stretch", key="take_bonus_risk"):
@@ -619,7 +924,9 @@ def build_result_payload() -> dict:
     if not st.session_state.record_code:
         st.session_state.record_code = f"TOWER-{uuid.uuid4().hex[:8].upper()}"
     choices = " | ".join(
-        f"{result['floor']}층-{result['scene']}:{result['score']}점" for result in st.session_state.selections
+        f"{result['floor']}층-{result['scene']}:{result['score']}점"
+        f"(1차 {result['base_score']}+후속 {result['followup_score']})"
+        for result in st.session_state.selections
     )
     return {
         "record_code": st.session_state.record_code,
@@ -716,3 +1023,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

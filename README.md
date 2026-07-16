@@ -1,6 +1,6 @@
 # 담합의 탑
 
-전략기획·전략투자·브랜드성장 조직을 위한 Streamlit 기반 담합 컴플라이언스 게임입니다. 본편은 5층, 층당 3개 장면으로 진행되며, 본편 점수와 플레이 시간을 기록합니다. 본편 종료 후에는 별도 번외인 `마왕에게 도전` 모드를 플레이할 수 있습니다.
+전략기획·전략투자·브랜드성장 조직을 위한 Streamlit 기반 담합 컴플라이언스 게임입니다. 본편은 5층, 층당 3개 장면으로 진행되며, 각 장면은 1차 판단(80·60·40·0점)과 후속 조치(20·10·0점)의 2단계 선택으로 구성됩니다. 본편 점수와 플레이 시간을 기록하며, 본편 종료 후에는 별도 번외인 `마왕에게 도전` 모드를 플레이할 수 있습니다.
 
 ## 실행
 
@@ -53,6 +53,9 @@ assets/
   battle_bg_floor_4.png
   battle_bg_floor_5.png
   hero_male_back.png
+  hero_male_front_sword.png
+  hero_male_sword_rejected.png
+  parchment_scroll.png
   enemy_floor_1.png
   enemy_floor_2.png
   enemy_floor_3.png
@@ -67,6 +70,10 @@ assets/
 | `tower_intro.png` | 16:9 | 1280x720 | 불투명 |
 | `battle_bg_floor_*.png` | 16:9 | 1280x720 이상 | 불투명 PNG |
 | `hero_male_back.png` | 1:1 | 512x512 이상 | 투명 PNG |
+| `hero_male_front_sword.png` | 1:1 | 512x512 이상 | 투명 PNG |
+| `hero_male_sword_rejected.png` | 1:1 | 512x512 이상 | 투명 PNG |
+| `parchment_scroll.png` | 4:5 내외 | 1024x1280 이상 | 투명 PNG |
 | `enemy_floor_*.png` | 1:1 | 512x512 | 투명 PNG |
 
 생성 이미지 파일은 업로드 전 실제 PNG인지 확인하고, 파일명과 확장자를 위 구조에 맞춰 넣으면 됩니다.
+
