@@ -44,4 +44,3 @@ def append_result(secrets: Any, result: dict[str, Any]) -> tuple[bool, str]:
         return True, "기록이 Google Sheets에 저장되었습니다."
     except Exception:
         return False, "Google Sheets 기록 중 오류가 발생했습니다. 스프레드시트 ID와 서비스 계정 공유 권한을 확인해 주세요."
-
