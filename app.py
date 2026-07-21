@@ -166,6 +166,12 @@ def apply_style() -> None:
             font-weight: 700;
             margin-bottom: 0.35rem;
         }
+        .encounter-label {
+            color: var(--red);
+            font-size: 0.76rem;
+            font-weight: 800;
+            margin-bottom: 0.35rem;
+        }
         div.stButton > button {
             border-radius: 0 !important;
             border: 3px solid var(--paper) !important;
@@ -222,7 +228,11 @@ def apply_style() -> None:
         .parchment-closing,
         .parchment-result-title,
         .parchment-feedback,
-        .parchment-best {
+        .parchment-best,
+        .parchment-lessons,
+        .parchment-terms,
+        .parchment-memory,
+        .parchment-review {
             font-family: "Batang", "Nanum Myeongjo", "Noto Serif KR", serif !important;
             color: #352313 !important;
         }
@@ -247,6 +257,25 @@ def apply_style() -> None:
             line-height: 1.75;
             text-align: center;
         }
+        .parchment-lessons {
+            margin: 1rem 0 0.7rem;
+            padding: 0.85rem 0.95rem;
+            border-top: 2px solid rgba(75, 43, 22, 0.58);
+            border-bottom: 2px solid rgba(75, 43, 22, 0.58);
+            line-height: 1.65;
+        }
+        .parchment-lessons strong { color: #3a2514 !important; }
+        .parchment-lessons ul { margin: 0.45rem 0 0; padding-left: 1.25rem; }
+        .parchment-lessons li { margin: 0.2rem 0; }
+        .parchment-terms {
+            margin: 0.7rem 0 0.95rem;
+            padding: 0.65rem 0;
+            border-bottom: 1px solid rgba(75, 43, 22, 0.42);
+            font-size: 0.88rem;
+            line-height: 1.6;
+        }
+        .parchment-terms ul { margin: 0.35rem 0 0; padding-left: 1.25rem; }
+        .parchment-terms li { margin: 0.15rem 0; }
         .parchment-result {
             padding: 1rem 0.25rem 0.9rem;
             border-top: 1px solid rgba(75, 43, 22, 0.48);
@@ -257,6 +286,24 @@ def apply_style() -> None:
         .parchment-feedback { margin: 0.55rem 0; line-height: 1.68; }
         .parchment-best { margin: 0; color: #624524 !important; font-size: 0.88rem; line-height: 1.6; }
         .parchment-score { margin: 0.2rem 0 0.55rem; color: #785420 !important; font-size: 0.82rem; font-weight: 700; }
+        .parchment-memory {
+            margin: 0.65rem 0 0.55rem;
+            padding: 0.7rem 0.8rem;
+            border-left: 5px solid #6f451f;
+            background: rgba(255, 243, 191, 0.34);
+            font-size: 0.95rem;
+            font-weight: 800;
+            line-height: 1.6;
+        }
+        .parchment-review { margin-top: 0.55rem; font-size: 0.9rem; line-height: 1.65; }
+        .parchment-review summary {
+            cursor: pointer;
+            color: #573719 !important;
+            font-weight: 800;
+        }
+        .parchment-review[open] summary { margin-bottom: 0.65rem; }
+        .review-label { margin: 0.55rem 0 0.12rem; color: #6a431f !important; font-weight: 800; }
+        .review-choice { margin: 0 0 0.35rem; color: #24170e !important; line-height: 1.65; }
         div.st-key-floor_feedback_parchment div[data-testid="stMetric"] {
             border: 1px solid rgba(75, 43, 22, 0.52);
             background: rgba(255, 246, 202, 0.24);
@@ -339,6 +386,7 @@ def apply_style() -> None:
             div.st-key-floor_feedback_parchment { padding: 1.7rem 1rem 1.25rem; }
             .parchment-title { font-size: 1.55rem; }
             .parchment-closing { text-align: left; }
+            .parchment-lessons { padding: 0.75rem 0.4rem; }
             .ending-scene { min-height: 0; grid-template-columns: 1fr; }
             .ending-hero { height: 340px; }
             .ending-copy { padding: 0 1.2rem 1.5rem; text-align: center; }
@@ -401,6 +449,8 @@ def init_state() -> None:
         "risk_used": False,
         "risk_success": False,
         "pending_followup": None,
+        "main_choice_orders": {},
+        "followup_choice_orders": {},
         "show_floor_feedback": False,
         "bonus_score": 0,
         "bonus_streak": 0,
@@ -427,6 +477,8 @@ def reset_game() -> None:
         "risk_used",
         "risk_success",
         "pending_followup",
+        "main_choice_orders",
+        "followup_choice_orders",
         "show_floor_feedback",
         "bonus_score",
         "bonus_streak",
@@ -448,6 +500,22 @@ def seconds_text(seconds: int | None) -> str:
         return "측정 전"
     minutes, remainder = divmod(seconds, 60)
     return f"{minutes:02d}:{remainder:02d}"
+
+
+def shuffled_scene_options(floor_number: int, scene_index: int, scene: dict, field: str) -> list[dict]:
+    state_key = "main_choice_orders" if field == "choices" else "followup_choice_orders"
+    scene_key = f"{floor_number}:{scene_index}"
+    options_by_key = {option["key"]: option for option in scene[field]}
+    saved_order = st.session_state[state_key].get(scene_key)
+
+    if saved_order is None or set(saved_order) != set(options_by_key):
+        saved_order = list(options_by_key)
+        random.shuffle(saved_order)
+        updated_orders = dict(st.session_state[state_key])
+        updated_orders[scene_key] = saved_order
+        st.session_state[state_key] = updated_orders
+
+    return [options_by_key[key] for key in saved_order]
 
 
 def render_sprite(filename: str, label: str, role: str) -> None:
@@ -585,6 +653,8 @@ def choose_main_option(floor: dict, scene: dict, option: dict) -> None:
             "risk_success": risk_success,
             "feedback": feedback,
             "best": scene["best"],
+            "memory": scene.get("memory", ""),
+            "recommended_followup": scene.get("recommended_followup", ""),
         }
     )
     st.session_state.main_score += awarded_score
@@ -637,16 +707,49 @@ def render_floor_feedback() -> None:
         metrics[1].metric("누적 점수", f"{st.session_state.main_score}점")
         metrics[2].metric("선택 장면", f"{len(results)}개")
 
+        lesson_items = "".join(f"<li>{html.escape(lesson)}</li>" for lesson in floor.get("lessons", []))
+        if lesson_items:
+            st.markdown(
+                "<div class='parchment-lessons'><strong>이번 층의 핵심</strong>"
+                f"<ul>{lesson_items}</ul></div>",
+                unsafe_allow_html=True,
+            )
+
+        terms = floor.get("terms", {})
+        if terms:
+            term_items = "".join(f"<li>{html.escape(term)}</li>" for term in terms)
+            st.markdown(
+                "<div class='parchment-terms'><strong>낯선 말 풀어보기</strong>"
+                f"<ul>{term_items}</ul></div>",
+                unsafe_allow_html=True,
+            )
+
         for index, result in enumerate(results, start=1):
-            risk_class = "risk" if result["kind"] == "risk" and not result["risk_success"] else "good"
-            base_label = "위험 보상" if result["kind"] == "risk" and result["risk_success"] else "1차 판단"
+            risk_class = "risk" if result["kind"] == "risk" else "good"
+            if result["kind"] == "risk":
+                base_label = "위험 선택 보상" if result["risk_success"] else "위험 선택"
+            else:
+                base_label = "1차 판단"
             st.markdown(
                 f"<div class='parchment-result'>"
                 f"<div class='parchment-result-title {risk_class}'>{index}. {html.escape(result['scene'])} · {result['score']}점</div>"
                 f"<p class='parchment-score'>{base_label} {result['base_score']}점 + 후속 조치 {result['followup_score']}점</p>"
-                f"<p class='parchment-feedback'>{html.escape(result['feedback'])}</p>"
-                f"<p class='parchment-feedback'>후속 조치: {html.escape(result['followup_feedback'])}</p>"
-                f"<p class='parchment-best'>가장 안전한 대응: {html.escape(result['best'])}</p>"
+                f"<p class='parchment-memory'>한 줄 원칙 · {html.escape(result['memory'])}</p>"
+                "<details class='parchment-review'>"
+                "<summary>내 선택과 자세한 해설 보기</summary>"
+                "<p class='review-label'>내가 고른 1차 판단</p>"
+                f"<p class='review-choice'>{html.escape(result['choice_text'])}</p>"
+                "<p class='review-label'>1차 판단 해설</p>"
+                f"<p class='review-choice'>{html.escape(result['feedback'])}</p>"
+                "<p class='review-label'>내가 고른 후속 조치</p>"
+                f"<p class='review-choice'>{html.escape(result['followup_text'] or '선택하지 않음')}</p>"
+                "<p class='review-label'>후속 조치 해설</p>"
+                f"<p class='review-choice'>{html.escape(result['followup_feedback'] or '후속 조치가 선택되지 않았습니다.')}</p>"
+                "<p class='review-label'>실무에서 권장되는 1차 대응</p>"
+                f"<p class='parchment-best'>{html.escape(result['best'])}</p>"
+                "<p class='review-label'>권장 후속 조치</p>"
+                f"<p class='parchment-best'>{html.escape(result['recommended_followup'])}</p>"
+                "</details>"
                 "</div>",
                 unsafe_allow_html=True,
             )
@@ -676,7 +779,8 @@ def render_main_game() -> None:
     st.caption(floor["opening"])
     render_battle(floor)
     st.markdown(
-        f"<div class='pixel-panel'><h3>{html.escape(scene['title'])}</h3>"
+        "<div class='pixel-panel'><div class='encounter-label'>적의 제안</div>"
+        f"<h3>{html.escape(scene['title'])}</h3>"
         f"<p class='dialogue'>{html.escape(scene['situation'])}</p></div>",
         unsafe_allow_html=True,
     )
@@ -692,7 +796,10 @@ def render_main_game() -> None:
             "</div>",
             unsafe_allow_html=True,
         )
-        for option in scene["followups"]:
+        followup_options = shuffled_scene_options(
+            floor["number"], st.session_state.scene_index, scene, "followups"
+        )
+        for option in followup_options:
             if st.button(
                 option["text"],
                 key=f"followup_{floor['number']}_{st.session_state.scene_index}_{option['key']}",
@@ -706,7 +813,10 @@ def render_main_game() -> None:
         unsafe_allow_html=True,
     )
 
-    for option in scene["choices"]:
+    main_options = shuffled_scene_options(
+        floor["number"], st.session_state.scene_index, scene, "choices"
+    )
+    for option in main_options:
         is_risk = option["kind"] == "risk"
         disabled = is_risk and st.session_state.risk_used
         label = option["text"]
@@ -734,19 +844,22 @@ def main_title_and_feedback() -> tuple[str, list[str]]:
 
     if score >= 1350:
         title = "공정거래 수호자"
-        notes.append("가격·물량·고객·입찰 조건의 위험 신호를 빠르게 구분했고, 거절 이후의 기록과 보고까지 연결했습니다.")
+        notes.append("가격·물량·고객·입찰 조건의 위험 신호를 빠르게 구분했고, 대화를 끊은 뒤 원본 보존과 독립적인 재검토까지 연결했습니다.")
     elif score >= 1100:
         title = "원칙 설계자"
-        notes.append("핵심 원칙은 지켰습니다. 이제는 모호한 접촉도 기록하고 공식 상담으로 연결하는 습관을 더해 보세요.")
+        notes.append("핵심 원칙은 지켰습니다. 이제는 거절에서 끝내지 말고 원본 보존, 확산 차단, 영향을 받은 자료의 재검토까지 이어가 보세요.")
     elif score >= 800:
         title = "경계선 감지자"
-        notes.append("명백한 위험은 피했지만, 대화 이탈·증거 보존·보고 중 일부가 빠졌습니다.")
+        notes.append("명백한 위험은 피했지만, 대화 이탈·원본 보존·영향 자료 재검토 중 일부가 빠졌습니다.")
     else:
         title = "회색지대 탐험가"
         notes.append("성과 압박이나 관계 관리의 언어가 나와도 경쟁 민감정보의 교환과 활용은 선을 그어야 합니다.")
 
     if incomplete_followups:
-        notes.append(f"{incomplete_followups}개 장면에서 공식 기록·보고까지 이어지지 않았습니다. 현장에서 거절한 뒤에도 증거 보존과 보고를 완료해야 조직이 재발 위험을 관리할 수 있습니다.")
+        notes.append(
+            f"{incomplete_followups}개 장면에서 후속 조치가 완결되지 않았습니다. "
+            "보고 여부만이 아니라 원본 보존, 확산 차단, 영향을 받은 자료의 재검토, 적절한 이관 경로까지 함께 확인해야 합니다."
+        )
     if weak_initial_judgments:
         notes.append(f"{weak_initial_judgments}개 장면에서 위험한 대화나 자료에 불필요하게 노출됐습니다. 후속 보고가 있더라도 최초 대응에서 즉시 중단·이탈하는 판단이 먼저 필요합니다.")
     if st.session_state.risk_used and st.session_state.risk_success:
